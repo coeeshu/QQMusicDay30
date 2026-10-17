@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace QQDay30;
 
@@ -15,6 +16,8 @@ internal static class DarkTitleBar
     private const int DWMWA_BORDER_COLOR = 34;
     private const int DWMWCP_ROUND = 2;
 
+    public static Color BorderFor(bool dark) => dark ? Color.FromRgb(0x33, 0x33, 0x33) : Color.FromRgb(0xD0, 0xD3, 0xD6);
+
     public static void Apply(Window w)
     {
         var hwnd = new WindowInteropHelper(w).Handle;
@@ -22,7 +25,7 @@ internal static class DarkTitleBar
         void Frame()
         {
             Set(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ThemeManager.IsDark ? 1 : 0);
-            Set(hwnd, DWMWA_BORDER_COLOR, ThemeManager.IsDark ? 0x00333333 : 0x00D6D3D0); // COLORREF 0x00BBGGRR
+            SetBorder(w, BorderFor(ThemeManager.IsDark));
         }
         Frame();
         ThemeManager.Changed += Frame;
@@ -32,6 +35,10 @@ internal static class DarkTitleBar
         w.StateChanged += (_, _) => Pad(w);
         Pad(w);
     }
+
+    /// <summary>The 1px DWM border; it lives outside the client area, so transitions have to drive it directly.</summary>
+    public static void SetBorder(Window w, Color c) =>
+        Set(new WindowInteropHelper(w).Handle, DWMWA_BORDER_COLOR, c.R | c.G << 8 | c.B << 16); // COLORREF 0x00BBGGRR
 
     private static void Pad(Window w)
     {

@@ -131,7 +131,9 @@ public partial class MainWindow : Window
 
         ThemeOverlay.Source = shot;
         ThemeOverlay.Visibility = Visibility.Visible;
+        var fromBorder = DarkTitleBar.BorderFor(ThemeManager.IsDark);
         swap();
+        var toBorder = DarkTitleBar.BorderFor(ThemeManager.IsDark);
 
         var c = origin ?? new Point(w / 2, h / 2);
         var radius = new[] { new Point(0, 0), new Point(w, 0), new Point(0, h), new Point(w, h) }
@@ -143,8 +145,19 @@ public partial class MainWindow : Window
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
         };
+        // the DWM border is outside the snapshot: blend its color with the reveal's progress
+        void Border(object? s, EventArgs e)
+        {
+            var t = Math.Clamp(hole.RadiusX / radius, 0, 1);
+            DarkTitleBar.SetBorder(this, Color.FromRgb(
+                (byte)(fromBorder.R + (toBorder.R - fromBorder.R) * t),
+                (byte)(fromBorder.G + (toBorder.G - fromBorder.G) * t),
+                (byte)(fromBorder.B + (toBorder.B - fromBorder.B) * t)));
+        }
+        CompositionTarget.Rendering += Border;
         grow.Completed += (_, _) =>
         {
+            CompositionTarget.Rendering -= Border;
             ThemeOverlay.Visibility = Visibility.Collapsed;
             ThemeOverlay.Source = null;
             ThemeOverlay.Clip = null;
