@@ -117,8 +117,12 @@ public partial class MainWindow : Window
         var dpi = VisualTreeHelper.GetDpi(this);
         var dv = new DrawingVisual();
         using (var dc = dv.RenderOpen())
+        {
+            // areas without their own background show the window's; paint it first or they'd be see-through
+            dc.DrawRectangle(Background, null, new Rect(0, 0, w, h));
             dc.DrawRectangle(new VisualBrush(root) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top },
                 null, new Rect(0, 0, w, h));
+        }
         var shot = new RenderTargetBitmap((int)Math.Ceiling(w * dpi.DpiScaleX), (int)Math.Ceiling(h * dpi.DpiScaleY),
             dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
         shot.Render(dv);
