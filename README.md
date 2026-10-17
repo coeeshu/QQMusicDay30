@@ -63,3 +63,7 @@ dotnet publish -c Release
 ## License
 
 [MIT](LICENSE)
+
+## 🙏 鸣谢
+
+感谢 [LINUX DO](https://linux.do) 社区。

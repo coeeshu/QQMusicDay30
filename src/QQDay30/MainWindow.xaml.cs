@@ -106,11 +106,12 @@ public partial class MainWindow : Window
     /// Theme transition: freeze the current look into an overlay, swap colors underneath,
     /// then grow a circular hole from <paramref name="origin"/> until the new theme fills the window.
     /// </summary>
-    private void RevealSwap(Action swap, Point? origin)
+    private void RevealSwap(Action swap, Point? origin, Action done)
     {
         if (Content is not FrameworkElement root || !IsLoaded || WindowState == WindowState.Minimized)
         {
             swap();
+            done();
             return;
         }
         double w = root.ActualWidth, h = root.ActualHeight;
@@ -147,6 +148,7 @@ public partial class MainWindow : Window
             ThemeOverlay.Visibility = Visibility.Collapsed;
             ThemeOverlay.Source = null;
             ThemeOverlay.Clip = null;
+            done();
         };
         hole.BeginAnimation(EllipseGeometry.RadiusXProperty, grow);
         hole.BeginAnimation(EllipseGeometry.RadiusYProperty, grow);

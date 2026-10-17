@@ -36,19 +36,21 @@ public static class ThemeManager
     public static ThemeMode Mode { get; private set; } = ThemeMode.System;
     public static bool IsDark { get; private set; } = true;
 
-    /// <summary>Raised after the colors changed (windows refresh their DWM frame).</summary>
+    /// <summary>Raised once the new theme is fully shown (windows refresh their DWM frame).</summary>
     public static event Action? Changed;
 
     /// <summary>
     /// Optional hook an open window installs to wrap the color swap in a transition.
-    /// Called with the swap action and the point (window coordinates) the transition should start from.
+    /// Called with the swap action, the point (window coordinates) the transition should start from,
+    /// and a callback to run once the transition has finished.
     /// </summary>
-    public static Action<Action, Point?>? Transition { get; set; }
+    public static Action<Action, Point?, Action>? Transition { get; set; }
 
     public static void Init(ThemeMode mode)
     {
         Mode = mode;
         Swap(Resolve(mode));
+        Changed?.Invoke();
         SystemEvents.UserPreferenceChanged += (_, e) =>
         {
             if (e.Category != UserPreferenceCategory.General || Mode != ThemeMode.System) return;
@@ -61,8 +63,14 @@ public static class ThemeManager
         Mode = mode;
         var dark = Resolve(mode);
         if (dark == IsDark) return;
-        if (Transition != null) Transition(() => Swap(dark), origin);
-        else Swap(dark);
+        // Changed (which recolors the DWM window border) waits for the transition: the border is outside
+        // the snapshot, so switching it early draws a ring of the new color around the old look
+        if (Transition != null) Transition(() => Swap(dark), origin, () => Changed?.Invoke());
+        else
+        {
+            Swap(dark);
+            Changed?.Invoke();
+        }
     }
 
     private static bool Resolve(ThemeMode mode) => mode switch
@@ -85,6 +93,5 @@ public static class ThemeManager
         var res = Application.Current.Resources;
         foreach (var (key, (d, l)) in Palette)
             res[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dark ? d : l));
-        Changed?.Invoke();
     }
 }
