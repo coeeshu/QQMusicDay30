@@ -16,6 +16,26 @@ public sealed class Capturer(QQMusicClient client, Store store)
         return day;
     }
 
+    /// <summary>Pulls the past days from 「历史推荐」 that are not stored yet. Returns how many days were added.</summary>
+    public async Task<int> BackfillHistory()
+    {
+        var known = store.Dates().ToHashSet();
+        var (dates, newest) = await client.GetDaily30History();
+        var added = 0;
+        for (var i = 0; i < dates.Count; i++)
+        {
+            var key = dates[i].ToString("yyyy-MM-dd");
+            if (known.Contains(key)) continue;
+            // the first date's songs come with the date list; the rest need one call each
+            var songs = i == 0 ? newest : (await client.GetDaily30History(dates[i])).Songs;
+            if (songs.Count == 0) continue;
+            store.SaveDay(new DayList(key, 202, "每日30首（历史推荐）", DateTime.Now, songs));
+            added++;
+        }
+        if (added > 0) AppPaths.Log($"history backfill: {added} days");
+        return added;
+    }
+
     /// <summary>The cover is a calendar image like ".../calendar/1018_300.jpg"; fall back to the playlist mtime.</summary>
     private static DateTime ResolveDate(string picUrl, DateTime modified)
     {

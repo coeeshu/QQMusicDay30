@@ -102,21 +102,40 @@ public sealed class QQMusicClient
     {
         var dir = data["dirinfo"];
         var mtime = dir?["mtime"]?.GetValue<long>() ?? 0;
-        var songs = new List<Song>();
-        foreach (var s in data["songlist"]?.AsArray() ?? [])
-        {
-            if (s == null) continue;
-            songs.Add(new Song(
-                s["id"]!.GetValue<long>(),
-                s["mid"]?.GetValue<string>() ?? "",
-                s["type"]?.GetValue<int>() ?? 0,
-                s["name"]?.GetValue<string>() ?? "",
-                string.Join(" / ", s["singer"]?.AsArray().Select(x => x?["name"]?.GetValue<string>()) ?? []),
-                s["album"]?["name"]?.GetValue<string>() ?? "",
-                s["album"]?["mid"]?.GetValue<string>() ?? "",
-                s["interval"]?.GetValue<int>() ?? 0));
-        }
+        var songs = (data["songlist"]?.AsArray() ?? []).Where(s => s != null).Select(s => ParseSong(s!)).ToList();
         return (dir?["title"]?.GetValue<string>() ?? "", dir?["picurl"]?.GetValue<string>() ?? "", DateTimeOffset.FromUnixTimeSeconds(mtime).LocalDateTime, songs);
+    }
+
+    private static Song ParseSong(JsonNode s) => new(
+        s["id"]!.GetValue<long>(),
+        s["mid"]?.GetValue<string>() ?? "",
+        s["type"]?.GetValue<int>() ?? 0,
+        s["name"]?.GetValue<string>() ?? "",
+        string.Join(" / ", s["singer"]?.AsArray().Select(x => x?["name"]?.GetValue<string>()) ?? []),
+        s["album"]?["name"]?.GetValue<string>() ?? "",
+        s["album"]?["mid"]?.GetValue<string>() ?? "",
+        s["interval"]?.GetValue<int>() ?? 0);
+
+    /// <summary>
+    /// The mobile app's 「历史推荐」: past daily-30 lists the server still keeps (about the last 7 days you opened).
+    /// Without a date it returns the date list plus the newest day's songs; with one it returns that day.
+    /// </summary>
+    public async Task<(List<DateTime> Dates, List<Song> Songs)> GetDaily30History(DateTime? day = null)
+    {
+        object param = day is { } d
+            ? new { dirid = 202, tid = 0, spec = new { bSet = true, year = d.Year, month = d.Month, day = d.Day } }
+            : new { dirid = 202, tid = 0 };
+        var data = await Musicu("music.srfDissInfo.aiHistory", "get_aiHistoryinfo", param);
+        var dates = (data["items"]?.AsArray() ?? [])
+            .Where(i => i != null)
+            .Select(i => new DateTime(i!["year"]!.GetValue<int>(), i["month"]!.GetValue<int>(), i["day"]!.GetValue<int>()))
+            .ToList();
+        var songs = (data["songlist"]?.AsArray() ?? [])
+            .Select(s => s?["track"])
+            .Where(t => t != null)
+            .Select(t => ParseSong(t!))
+            .ToList();
+        return (dates, songs);
     }
 
     public async Task<List<UserPlaylist>> GetMyPlaylists()

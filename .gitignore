@@ -11,3 +11,4 @@ probe/
 # never commit login data
 cookie.json
 *.db
+apk_work/

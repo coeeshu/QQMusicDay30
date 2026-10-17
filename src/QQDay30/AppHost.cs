@@ -80,18 +80,30 @@ public sealed class AppHost : IDisposable
 
     // ---- capture ----
 
-    public async Task CaptureNow()
+    /// <summary>Captures today and backfills missing days from 「历史推荐」. Returns the number of backfilled days.</summary>
+    public async Task<int> CaptureNow()
     {
         SetStatus("正在捕获今天的每日30首…");
-        var day = await new Capturer(Client, Store).CaptureToday();
-        SetStatus($"已记录 {new DateItem(day.Date).Label} 的 {day.Songs.Count} 首");
+        var cap = new Capturer(Client, Store);
+        var day = await cap.CaptureToday();
+        var added = 0;
+        try
+        {
+            added = await cap.BackfillHistory();
+            _backfilledOn = DateTime.Today;
+        }
+        catch (Exception e) { AppPaths.Log("history backfill failed: " + e.Message); }
+        SetStatus($"已记录 {new DateItem(day.Date).Label} 的 {day.Songs.Count} 首" + (added > 0 ? $"，并从历史推荐补回 {added} 天" : ""));
         Captured?.Invoke(this, EventArgs.Empty);
+        return added;
     }
 
-    /// <summary>Automatic runs skip when today is already stored; failures only go to the status bar.</summary>
+    private DateTime _backfilledOn;
+
+    /// <summary>Automatic runs skip when today is stored and history was checked today; failures only go to the status bar.</summary>
     private async Task SafeCapture(bool manual)
     {
-        if (!manual && Store.Dates().FirstOrDefault() == DateTime.Today.ToString("yyyy-MM-dd")) return;
+        if (!manual && _backfilledOn == DateTime.Today && Store.Dates().Contains(DateTime.Today.ToString("yyyy-MM-dd"))) return;
         try { await CaptureNow(); }
         catch (NotLoggedInException) { SetStatus("登录已失效，请重新登录"); RequestLogin(); }
         catch (Exception e) { SetStatus("捕获失败：" + e.Message); }
