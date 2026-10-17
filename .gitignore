@@ -1,0 +1,13 @@
+bin/
+obj/
+dist/
+distraw/
+.vs/
+*.user
+
+# local API experiments (they read your own login cookie)
+probe/
+
+# never commit login data
+cookie.json
+*.db
