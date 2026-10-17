@@ -160,6 +160,10 @@ public partial class MainWindow : Window
 
     private async void CaptureBtn_Click(object sender, RoutedEventArgs e) => await Busy(_host.CaptureNow);
 
+    private void MinBtn_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void CloseBtn_Click(object sender, RoutedEventArgs e) => Close();
+
     private void SettingBox_Click(object sender, RoutedEventArgs e)
     {
         _host.Settings.AutoStartWithWindows = AutoStartBox.IsChecked == true;

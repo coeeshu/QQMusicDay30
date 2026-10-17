@@ -29,7 +29,7 @@ public sealed class AppHost : IDisposable
         Client = new QQMusicClient(CookieStore.Load());
         Settings.ApplyAutoStart();
 
-        _tray = new Forms.NotifyIcon { Icon = MakeIcon(), Text = "每日30首捕捉器", Visible = true };
+        _tray = new Forms.NotifyIcon { Icon = LoadIcon(), Text = "每日30首捕捉器", Visible = true };
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("打开", null, (_, _) => ShowWindow());
         menu.Items.Add("立即捕获今天", null, async (_, _) => await SafeCapture(manual: true));
@@ -138,19 +138,10 @@ public sealed class AppHost : IDisposable
         finally { _loginOpen = false; }
     }
 
-    private static Icon MakeIcon()
+    private static Icon LoadIcon()
     {
-        using var bmp = new Bitmap(32, 32);
-        using (var g = Graphics.FromImage(bmp))
-        {
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-            g.FillEllipse(new SolidBrush(Color.FromArgb(0x31, 0xC2, 0x7C)), 0, 0, 31, 31);
-            using var f = new Font("Arial", 13, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
-            var sz = g.MeasureString("30", f);
-            g.DrawString("30", f, Brushes.White, (32 - sz.Width) / 2, (32 - sz.Height) / 2);
-        }
-        return Icon.FromHandle(bmp.GetHicon());
+        using var s = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/app.ico")).Stream;
+        return new Icon(s, Forms.SystemInformation.SmallIconSize);
     }
 
     public void Dispose()

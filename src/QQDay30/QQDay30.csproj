@@ -9,7 +9,14 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>QQDay30</AssemblyName>
     <Product>每日30首捕捉器</Product>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- regenerate with: python tools/make_icon.py -->
+    <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\app.png" />
+  </ItemGroup>
 
   <!-- dotnet publish -c Release  => one framework-dependent exe in ..\..\dist -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">

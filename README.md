@@ -51,6 +51,8 @@ dotnet publish -c Release
 
 输出为 `dist/QQDay30.exe`（依赖框架的单文件）。
 
+图标由 `python tools/make_icon.py` 生成（需要 Pillow），输出到 `src/QQDay30/Assets/`。
+
 ## 声明
 
 本项目与腾讯 / QQ音乐无关，使用的是非官方接口，可能随时失效。仅供个人学习和管理自己账号的歌单使用，请勿用于任何商业或批量用途。

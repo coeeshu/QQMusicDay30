@@ -26,6 +26,10 @@ public partial class LoginWindow : Window
         Closed += (_, _) => _poll.Stop();
     }
 
+    private void MinBtn_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void CloseBtn_Click(object sender, RoutedEventArgs e) => Close();
+
     private async Task CheckCookies()
     {
         if (Web.CoreWebView2 == null) return;
