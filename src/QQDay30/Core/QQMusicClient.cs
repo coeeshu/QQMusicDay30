@@ -40,16 +40,18 @@ public sealed class QQMusicClient
     private long Gtk => GTk(CookieStore.MusicKey(_cookies) ?? "");
 
     /// <summary>Calls one module/method on musicu.fcg and returns the "data" node.</summary>
-    public async Task<JsonNode> Musicu(string module, string method, object param)
+    public async Task<JsonNode> Musicu(string module, string method, object param, int? tmeLoginType = null)
     {
+        var comm = new JsonObject
+        {
+            ["cv"] = 4747474, ["ct"] = 24, ["format"] = "json", ["inCharset"] = "utf-8", ["outCharset"] = "utf-8",
+            ["notice"] = 0, ["platform"] = "yqq.json", ["needNewCode"] = 1,
+            ["uin"] = long.TryParse(Uin, out var u) ? u : 0, ["g_tk_new_20200303"] = Gtk, ["g_tk"] = Gtk,
+        };
+        if (tmeLoginType != null) comm["tmeLoginType"] = tmeLoginType;
         var body = new JsonObject
         {
-            ["comm"] = new JsonObject
-            {
-                ["cv"] = 4747474, ["ct"] = 24, ["format"] = "json", ["inCharset"] = "utf-8", ["outCharset"] = "utf-8",
-                ["notice"] = 0, ["platform"] = "yqq.json", ["needNewCode"] = 1,
-                ["uin"] = long.TryParse(Uin, out var u) ? u : 0, ["g_tk_new_20200303"] = Gtk, ["g_tk"] = Gtk,
-            },
+            ["comm"] = comm,
             ["req"] = new JsonObject
             {
                 ["module"] = module, ["method"] = method, ["param"] = JsonSerializer.SerializeToNode(param),
@@ -66,6 +68,60 @@ public sealed class QQMusicClient
         if (data["retCode"]?.GetValue<int>() is int rc && rc != 0) throw new Exception($"{module}.{method} 失败 (retCode {rc})");
         return data;
     }
+
+    /// <summary>
+    /// Renews the music key (valid 3 days) with the refresh token from the web login and returns the updated cookies.
+    /// Older keys keep working, so a failed save never locks the user out.
+    /// </summary>
+    public async Task<Dictionary<string, string>> RefreshLogin()
+    {
+        var c = _cookies;
+        var wechat = c.GetValueOrDefault("login_type") == "2";
+        var key = CookieStore.MusicKey(c) ?? "";
+        object param = wechat
+            ? new
+            {
+                openid = c.GetValueOrDefault("wxopenid", ""), refresh_token = c.GetValueOrDefault("wxrefresh_token", ""),
+                str_musicid = Uin, musickey = key, unionid = c.GetValueOrDefault("wxunionid", ""),
+                refresh_key = c.GetValueOrDefault("refresh_key", ""), loginMode = 2,
+            }
+            : new
+            {
+                openid = c.GetValueOrDefault("psrf_qqopenid", ""), access_token = c.GetValueOrDefault("psrf_qqaccess_token", ""),
+                refresh_token = c.GetValueOrDefault("psrf_qqrefresh_token", ""), expired_in = 0,
+                musicid = long.TryParse(Uin, out var id) ? id : 0, musickey = key,
+                refresh_key = c.GetValueOrDefault("refresh_key", ""), loginMode = 2,
+            };
+        // tmeLoginType: 1 = WeChat, 2 = QQ
+        var data = await Musicu("music.login.LoginServer", "Login", param, wechat ? 1 : 2);
+        var newKey = data["musickey"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(newKey)) throw new NotLoggedInException("续期失败，需要重新登录");
+
+        var updated = new Dictionary<string, string>(c)
+        {
+            ["qqmusic_key"] = newKey,
+            ["qm_keyst"] = newKey,
+            ["psrf_musickey_createtime"] = (data["musickeyCreateTime"]?.GetValue<long>() ?? DateTimeOffset.Now.ToUnixTimeSeconds()).ToString(),
+        };
+        void Copy(string from, string to)
+        {
+            if (data[from]?.GetValue<string>() is { Length: > 0 } v) updated[to] = v;
+        }
+        Copy("refresh_key", "refresh_key");
+        if (wechat) Copy("refresh_token", "wxrefresh_token");
+        else
+        {
+            Copy("refresh_token", "psrf_qqrefresh_token");
+            Copy("access_token", "psrf_qqaccess_token");
+        }
+        return updated;
+    }
+
+    /// <summary>When the current music key was issued (from the login cookies).</summary>
+    public DateTime KeyCreatedAt =>
+        long.TryParse(_cookies.GetValueOrDefault("psrf_musickey_createtime"), out var t) && t > 0
+            ? DateTimeOffset.FromUnixTimeSeconds(t).LocalDateTime
+            : DateTime.MinValue;
 
     /// <summary>Today's daily 30, read from the account's system directory 202.</summary>
     public async Task<(string Title, string PicUrl, DateTime Modified, List<Song> Songs)> GetDaily30()

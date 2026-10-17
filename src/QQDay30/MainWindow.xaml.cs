@@ -312,7 +312,16 @@ public partial class MainWindow : Window
     private async Task Busy(Func<Task<string>> work)
     {
         SetBusy(true);
-        try { ShowToast(await work()); }
+        try
+        {
+            try { ShowToast(await work()); }
+            catch (NotLoggedInException)
+            {
+                // the key expired: renew it and run the action once more, else fall back to QR login
+                if (!await _host.TryRefreshLogin(force: true)) throw;
+                ShowToast(await work());
+            }
+        }
         catch (Exception ex)
         {
             StatusText.Text = "出错：" + ex.Message;

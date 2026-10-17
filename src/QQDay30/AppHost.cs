@@ -103,10 +103,43 @@ public sealed class AppHost : IDisposable
     /// <summary>Automatic runs skip when today is stored and history was checked today; failures only go to the status bar.</summary>
     private async Task SafeCapture(bool manual)
     {
+        await TryRefreshLogin(force: false);
         if (!manual && _backfilledOn == DateTime.Today && Store.Dates().Contains(DateTime.Today.ToString("yyyy-MM-dd"))) return;
         try { await CaptureNow(); }
-        catch (NotLoggedInException) { SetStatus("登录已失效，请重新登录"); RequestLogin(); }
+        catch (NotLoggedInException)
+        {
+            if (await TryRefreshLogin(force: true))
+            {
+                try { await CaptureNow(); return; }
+                catch (Exception e) when (e is not NotLoggedInException) { SetStatus("捕获失败：" + e.Message); return; }
+                catch (NotLoggedInException) { }
+            }
+            SetStatus("登录已失效，请重新登录");
+            RequestLogin();
+        }
         catch (Exception e) { SetStatus("捕获失败：" + e.Message); }
+    }
+
+    /// <summary>
+    /// The music key lasts 3 days; renew it once it is a day old (or when forced after a login error).
+    /// Returns false when renewal failed and a fresh QR login is needed.
+    /// </summary>
+    public async Task<bool> TryRefreshLogin(bool force)
+    {
+        if (!force && DateTime.Now - Client.KeyCreatedAt < TimeSpan.FromDays(1)) return true;
+        try
+        {
+            var updated = await Client.RefreshLogin();
+            CookieStore.Save(updated);
+            Client = new QQMusicClient(updated);
+            AppPaths.Log("login refreshed");
+            return true;
+        }
+        catch (Exception e)
+        {
+            AppPaths.Log("login refresh failed: " + e.Message);
+            return false;
+        }
     }
 
     // ---- playlists ----
