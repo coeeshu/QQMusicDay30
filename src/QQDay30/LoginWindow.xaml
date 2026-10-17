@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="登录QQ音乐 - 每日30首" Width="1000" Height="720"
-        WindowStartupLocation="CenterScreen" Background="#1C1C1C" Foreground="#E6E6E6"
+        WindowStartupLocation="CenterScreen" Background="{DynamicResource Panel}" Foreground="{DynamicResource Fg}"
         FontFamily="Microsoft YaHei UI" Icon="Assets/app.ico">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="44" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1"

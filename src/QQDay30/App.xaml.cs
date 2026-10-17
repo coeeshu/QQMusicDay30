@@ -24,6 +24,8 @@ public partial class App : Application
             return;
         }
 
+        ThemeManager.Init(Settings.Load().Theme);
+
         if (!CookieStore.LooksLoggedIn(CookieStore.Load()) || e.Args.Contains("--login"))
         {
             if (new LoginWindow().ShowDialog() != true) { Shutdown(); return; }

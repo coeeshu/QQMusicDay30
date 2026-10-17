@@ -10,6 +10,7 @@ public sealed class Settings
     /// <summary>Pop the window up when QQMusic.exe starts.</summary>
     public bool ShowWithQQMusic { get; set; } = true;
     public string WorkspaceName { get; set; } = "每日30·回放";
+    public ThemeMode Theme { get; set; } = ThemeMode.System;
     /// <summary>Leave empty to locate QQMusic.exe from the registry.</summary>
     public string QQMusicExe { get; set; } = "";
 

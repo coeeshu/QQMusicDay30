@@ -7,7 +7,7 @@
         <Style x:Key="CaptionButton" TargetType="Button">
             <Setter Property="Width" Value="46"/>
             <Setter Property="Height" Value="34"/>
-            <Setter Property="Foreground" Value="#B0B0B0"/>
+            <Setter Property="Foreground" Value="{DynamicResource CaptionFg}"/>
             <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -20,8 +20,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="B" Property="Background" Value="#2E2E2E"/>
-                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="B" Property="Background" Value="{DynamicResource CaptionHover}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

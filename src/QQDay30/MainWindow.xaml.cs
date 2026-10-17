@@ -88,7 +88,64 @@ public partial class MainWindow : Window
         host.StatusChanged += OnStatus;
         Closed += (_, _) => { host.Captured -= OnCaptured; host.StatusChanged -= OnStatus; };
         _toastTimer.Tick += (_, _) => HideToast();
+
+        ThemeSwitcher.SetMode(ThemeManager.Mode, animate: false);
+        ThemeSwitcher.ModeSelected += (mode, origin) =>
+        {
+            ThemeManager.SetMode(mode, origin);
+            _host.Settings.Theme = mode;
+            _host.Settings.Save();
+        };
+        ThemeManager.Transition = RevealSwap;
+        Closed += (_, _) => { if (ThemeManager.Transition == RevealSwap) ThemeManager.Transition = null; };
+
         Reload(keepSelection: false);
+    }
+
+    /// <summary>
+    /// Theme transition: freeze the current look into an overlay, swap colors underneath,
+    /// then grow a circular hole from <paramref name="origin"/> until the new theme fills the window.
+    /// </summary>
+    private void RevealSwap(Action swap, Point? origin)
+    {
+        if (Content is not FrameworkElement root || !IsLoaded || WindowState == WindowState.Minimized)
+        {
+            swap();
+            return;
+        }
+        double w = root.ActualWidth, h = root.ActualHeight;
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
+            dc.DrawRectangle(new VisualBrush(root) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top },
+                null, new Rect(0, 0, w, h));
+        var shot = new RenderTargetBitmap((int)Math.Ceiling(w * dpi.DpiScaleX), (int)Math.Ceiling(h * dpi.DpiScaleY),
+            dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+        shot.Render(dv);
+        shot.Freeze();
+
+        ThemeOverlay.Source = shot;
+        ThemeOverlay.Visibility = Visibility.Visible;
+        swap();
+
+        var c = origin ?? new Point(w / 2, h / 2);
+        var radius = new[] { new Point(0, 0), new Point(w, 0), new Point(0, h), new Point(w, h) }
+            .Max(p => (p - c).Length);
+        var hole = new EllipseGeometry(c, 0, 0);
+        ThemeOverlay.Clip = new CombinedGeometry(GeometryCombineMode.Exclude, new RectangleGeometry(new Rect(0, 0, w, h)), hole);
+
+        var grow = new DoubleAnimation(0, radius, TimeSpan.FromMilliseconds(680))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
+        };
+        grow.Completed += (_, _) =>
+        {
+            ThemeOverlay.Visibility = Visibility.Collapsed;
+            ThemeOverlay.Source = null;
+            ThemeOverlay.Clip = null;
+        };
+        hole.BeginAnimation(EllipseGeometry.RadiusXProperty, grow);
+        hole.BeginAnimation(EllipseGeometry.RadiusYProperty, grow);
     }
 
     private void OnCaptured(object? s, EventArgs e) => Dispatcher.Invoke(() => Reload(keepSelection: true));

@@ -1,0 +1,57 @@
+<UserControl x:Class="QQDay30.ThemeSwitch"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             WindowChrome.IsHitTestVisibleInChrome="True">
+    <UserControl.Resources>
+        <Style x:Key="Seg" TargetType="Button">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Glyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Opacity" Value="0.5"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border CornerRadius="16" Background="{DynamicResource SwitchBg}" Padding="2">
+        <Grid>
+            <!-- sliding thumb behind the selected icon -->
+            <Border x:Name="Thumb" Width="34" Height="28" CornerRadius="14" HorizontalAlignment="Left"
+                    Background="{DynamicResource SwitchThumb}" RenderTransformOrigin="0.5,0.5">
+                <Border.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Border.RenderTransform>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.22" Color="Black"/>
+                </Border.Effect>
+            </Border>
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="DarkBtn" Style="{StaticResource Seg}" ToolTip="深色" Click="Seg_Click">
+                    <TextBlock x:Name="MoonIcon" Style="{StaticResource Glyph}" Text="&#xE708;"/>
+                </Button>
+                <Button x:Name="LightBtn" Style="{StaticResource Seg}" ToolTip="浅色" Click="Seg_Click">
+                    <TextBlock x:Name="SunIcon" Style="{StaticResource Glyph}" Text="&#xE706;" FontSize="15"/>
+                </Button>
+                <Button x:Name="SystemBtn" Style="{StaticResource Seg}" ToolTip="跟随系统" Click="Seg_Click">
+                    <TextBlock x:Name="GearIcon" Style="{StaticResource Glyph}" Text="&#xE713;"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

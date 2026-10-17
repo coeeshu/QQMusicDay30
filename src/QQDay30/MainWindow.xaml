@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:QQDay30"
         Title="每日30首捕捉器" Width="1080" Height="720" MinWidth="760" MinHeight="480"
-        WindowStartupLocation="CenterScreen" Background="#121212" Foreground="#E6E6E6"
+        WindowStartupLocation="CenterScreen" Background="{DynamicResource Bg}" Foreground="{DynamicResource Fg}"
         FontFamily="Microsoft YaHei UI" FontSize="13" Icon="Assets/app.ico"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
     <WindowChrome.WindowChrome>
@@ -12,30 +12,25 @@
     </WindowChrome.WindowChrome>
     <Window.Resources>
         <SolidColorBrush x:Key="Accent" Color="#31C27C"/>
-        <SolidColorBrush x:Key="Sub" Color="#8A8A8A"/>
-        <SolidColorBrush x:Key="Panel" Color="#1A1A1A"/>
         <Duration x:Key="Fast">0:0:0.16</Duration>
         <QuarticEase x:Key="Out" EasingMode="EaseOut"/>
 
         <!-- pill button: hover/press fade a white overlay, press squeezes slightly -->
         <Style TargetType="Button">
-            <Setter Property="Foreground" Value="#E6E6E6"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
+            <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+            <Setter Property="Background" Value="{DynamicResource Card}"/>
             <Setter Property="Padding" Value="18,8"/>
             <Setter Property="Margin" Value="0,0,10,0"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-            <Setter Property="RenderTransform">
-                <Setter.Value>
-                    <ScaleTransform/>
-                </Setter.Value>
-            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Grid>
+                        <Grid x:Name="Root" RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform/>
+                            </Grid.RenderTransform>
                             <Border Background="{TemplateBinding Background}" CornerRadius="17"/>
-                            <Border x:Name="Over" Background="White" CornerRadius="17" Opacity="0"/>
+                            <Border x:Name="Over" Background="{DynamicResource Overlay}" CornerRadius="17" Opacity="0"/>
                             <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -59,18 +54,18 @@
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.96" Duration="0:0:0.08"/>
-                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.96" Duration="0:0:0.08"/>
+                                            <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.96" Duration="0:0:0.08"/>
+                                            <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.96" Duration="0:0:0.08"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.35">
+                                            <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.35">
                                                 <DoubleAnimation.EasingFunction><BackEase EasingMode="EaseOut" Amplitude="0.6"/></DoubleAnimation.EasingFunction>
                                             </DoubleAnimation>
-                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.35">
+                                            <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.35">
                                                 <DoubleAnimation.EasingFunction><BackEase EasingMode="EaseOut" Amplitude="0.6"/></DoubleAnimation.EasingFunction>
                                             </DoubleAnimation>
                                         </Storyboard>
@@ -101,7 +96,7 @@
                                 <Thumb>
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Border x:Name="T" Background="#3A3A3A" CornerRadius="4" Opacity="0.7"/>
+                                            <Border x:Name="T" Background="{DynamicResource ScrollThumb}" CornerRadius="4" Opacity="0.7"/>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Trigger.EnterActions>
@@ -136,8 +131,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
                         <Grid Margin="0,1">
-                            <Border x:Name="Hover" Background="White" CornerRadius="8" Opacity="0"/>
-                            <Border x:Name="Sel" Background="White" CornerRadius="8" Opacity="0"/>
+                            <Border x:Name="Hover" Background="{DynamicResource Overlay}" CornerRadius="8" Opacity="0"/>
+                            <Border x:Name="Sel" Background="{DynamicResource Overlay}" CornerRadius="8" Opacity="0"/>
                             <Rectangle x:Name="Bar" Width="3" Height="16" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource Accent}"
                                        HorizontalAlignment="Left" Margin="4,0,0,0" RenderTransformOrigin="0.5,0.5">
                                 <Rectangle.RenderTransform>
@@ -197,7 +192,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ListViewItem">
                         <Grid>
-                            <Border x:Name="Hover" Background="White" CornerRadius="8" Opacity="0"/>
+                            <Border x:Name="Hover" Background="{DynamicResource Overlay}" CornerRadius="8" Opacity="0"/>
                             <ContentPresenter Margin="8,6"/>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -224,14 +219,14 @@
         </Style>
 
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="{StaticResource Sub}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
                         <StackPanel Orientation="Horizontal" Background="Transparent">
                             <Grid Width="30" Height="17" VerticalAlignment="Center">
-                                <Border x:Name="Track" CornerRadius="8.5" Background="#3A3A3A"/>
+                                <Border x:Name="Track" CornerRadius="8.5" Background="{DynamicResource Track}"/>
                                 <Border x:Name="On" CornerRadius="8.5" Background="{StaticResource Accent}" Opacity="0"/>
                                 <Ellipse x:Name="Knob" Width="13" Height="13" Fill="White" HorizontalAlignment="Left" Margin="2,0,0,0">
                                     <Ellipse.RenderTransform>
@@ -281,13 +276,14 @@
         </Grid.RowDefinitions>
 
         <!-- sidebar background runs up into the title bar -->
-        <Border Grid.RowSpan="2" Background="{StaticResource Panel}"/>
+        <Border Grid.RowSpan="2" Background="{DynamicResource Panel}"/>
 
         <StackPanel x:Name="Brand" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
             <Image Source="Assets/app.png" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"/>
             <TextBlock Text="每日30首" FontSize="15" FontWeight="Bold" Margin="9,0,0,1" VerticalAlignment="Center"/>
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,8,0">
+            <local:ThemeSwitch x:Name="ThemeSwitcher" VerticalAlignment="Center" Margin="0,0,12,0"/>
             <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" ToolTip="最小化" Click="MinBtn_Click"/>
             <Button Style="{StaticResource CloseCaptionButton}" Content="&#xE8BB;" ToolTip="关闭到托盘" Click="CloseBtn_Click" Margin="4,0,0,0"/>
         </StackPanel>
@@ -312,13 +308,13 @@
         <!-- left: search + dates -->
         <DockPanel x:Name="Sidebar" Grid.Row="1">
             <StackPanel DockPanel.Dock="Top" Margin="14,6,14,8">
-                <TextBlock x:Name="CountText" Foreground="{StaticResource Sub}" Margin="2,0,0,10"/>
-                <Border x:Name="SearchBorder" Background="#262626" CornerRadius="16" Padding="13,7" BorderThickness="1" BorderBrush="#00000000">
+                <TextBlock x:Name="CountText" Foreground="{DynamicResource Sub}" Margin="2,0,0,10"/>
+                <Border x:Name="SearchBorder" Background="{DynamicResource Card2}" CornerRadius="16" Padding="13,7" BorderThickness="1" BorderBrush="#00000000">
                     <Grid>
-                        <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" Foreground="#E6E6E6"
+                        <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Fg}"
                                  CaretBrush="#31C27C" TextChanged="SearchBox_TextChanged"
                                  GotKeyboardFocus="SearchBox_Focus" LostKeyboardFocus="SearchBox_Focus"/>
-                        <TextBlock Text="搜索历史里的歌名 / 歌手" Foreground="#666" IsHitTestVisible="False"
+                        <TextBlock Text="搜索历史里的歌名 / 歌手" Foreground="{DynamicResource Placeholder}" IsHitTestVisible="False"
                                    x:Name="SearchHint"/>
                     </Grid>
                 </Border>
@@ -327,14 +323,14 @@
                 <CheckBox x:Name="AutoStartBox" Content="开机自动启动" Margin="0,0,0,10" Click="SettingBox_Click"/>
                 <CheckBox x:Name="FollowQQBox" Content="打开QQ音乐时弹出" Click="SettingBox_Click"/>
             </StackPanel>
-            <ListBox x:Name="DateList" Background="Transparent" BorderThickness="0" Margin="8,0"
+            <ListBox x:Name="DateList" Background="Transparent" Foreground="{DynamicResource Fg}" BorderThickness="0" Margin="8,0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.ScrollUnit="Pixel"
                      local:SmoothScroll.IsEnabled="True" SelectionChanged="DateList_SelectionChanged">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Label}" FontSize="14"/>
-                            <TextBlock Text="{Binding Week}" Foreground="#777" Margin="8,1,0,0"/>
+                            <TextBlock Text="{Binding Week}" Foreground="{DynamicResource Muted}" Margin="8,1,0,0"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -345,7 +341,7 @@
         <DockPanel Grid.Row="1" Grid.Column="1" Margin="28,2,20,0">
             <StackPanel x:Name="Header" DockPanel.Dock="Top">
                 <TextBlock x:Name="TitleText" FontSize="26" FontWeight="Bold" Text="还没有记录"/>
-                <TextBlock x:Name="SubText" Foreground="{StaticResource Sub}" Margin="0,6,0,16"/>
+                <TextBlock x:Name="SubText" Foreground="{DynamicResource Sub}" Margin="0,6,0,16"/>
                 <WrapPanel x:Name="Actions" Margin="0,0,0,14">
                     <Button x:Name="PlayBtn" Style="{StaticResource Primary}" Content="▶  放到工作区歌单并打开QQ音乐" Click="PlayBtn_Click"/>
                     <Button x:Name="SaveAsBtn" Content="另存为独立歌单" Click="SaveAsBtn_Click"/>
@@ -353,7 +349,7 @@
                 </WrapPanel>
             </StackPanel>
 
-            <ListView x:Name="SongList" Background="Transparent" BorderThickness="0" Foreground="#E6E6E6"
+            <ListView x:Name="SongList" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Fg}"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.ScrollUnit="Pixel"
                       local:SmoothScroll.IsEnabled="True" ItemContainerStyle="{StaticResource SongItem}">
                 <ListView.ItemTemplate>
@@ -367,12 +363,12 @@
                                 <ColumnDefinition Width="90"/>
                                 <ColumnDefinition Width="50"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Index}" Foreground="#777" VerticalAlignment="Center"/>
-                            <Border Grid.Column="1" Width="42" Height="42" CornerRadius="6" HorizontalAlignment="Left" Background="#262626">
+                            <TextBlock Text="{Binding Index}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="1" Width="42" Height="42" CornerRadius="6" HorizontalAlignment="Left" Background="{DynamicResource Card}">
                                 <Border.OpacityMask>
                                     <VisualBrush>
                                         <VisualBrush.Visual>
-                                            <Border Width="42" Height="42" CornerRadius="6" Background="White"/>
+                                            <Border Width="42" Height="42" CornerRadius="6" Background="{DynamicResource Overlay}"/>
                                         </VisualBrush.Visual>
                                     </VisualBrush>
                                 </Border.OpacityMask>
@@ -380,12 +376,12 @@
                             </Border>
                             <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0">
                                 <TextBlock Text="{Binding Song.Name}" FontSize="14" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding Song.Singers}" Foreground="{StaticResource Sub}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Song.Singers}" Foreground="{DynamicResource Sub}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
-                            <TextBlock Grid.Column="3" Text="{Binding Song.Album}" Foreground="{StaticResource Sub}" VerticalAlignment="Center"
+                            <TextBlock Grid.Column="3" Text="{Binding Song.Album}" Foreground="{DynamicResource Sub}" VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
-                            <TextBlock Grid.Column="4" Text="{Binding DateLabel}" Foreground="#777" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="5" Text="{Binding Song.DurationText}" Foreground="{StaticResource Sub}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="4" Text="{Binding DateLabel}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="5" Text="{Binding Song.DurationText}" Foreground="{DynamicResource Sub}" VerticalAlignment="Center"/>
                         </Grid>
                         <!-- covers fade in once downloaded -->
                         <DataTemplate.Triggers>
@@ -406,7 +402,7 @@
 
         <!-- toast -->
         <Border x:Name="Toast" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                Margin="0,0,0,18" Padding="18,10" CornerRadius="20" Background="#2B2B2B" Opacity="0" IsHitTestVisible="False">
+                Margin="0,0,0,18" Padding="18,10" CornerRadius="20" Background="{DynamicResource ToastBg}" Opacity="0" IsHitTestVisible="False">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.45" Color="Black"/>
             </Border.Effect>
@@ -416,8 +412,12 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="2" Grid.ColumnSpan="2" Background="#161616" Padding="14,6">
-            <TextBlock x:Name="StatusText" Foreground="#6A6A6A" Text="就绪" FontSize="12"/>
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Background="{DynamicResource StatusBg}" Padding="14,6">
+            <TextBlock x:Name="StatusText" Foreground="{DynamicResource Muted}" Text="就绪" FontSize="12"/>
         </Border>
+
+        <!-- snapshot of the old theme; a growing circular hole reveals the new theme underneath -->
+        <Image x:Name="ThemeOverlay" Grid.RowSpan="3" Grid.ColumnSpan="2" Stretch="None" HorizontalAlignment="Left"
+               VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" Panel.ZIndex="100"/>
     </Grid>
 </Window>
