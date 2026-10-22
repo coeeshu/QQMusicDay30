@@ -11,7 +11,7 @@
                       CornerRadius="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
     <Window.Resources>
-        <SolidColorBrush x:Key="Accent" Color="#31C27C"/>
+        <!-- "Accent" is set from code: it follows the service being shown -->
         <Duration x:Key="Fast">0:0:0.16</Duration>
         <QuarticEase x:Key="Out" EasingMode="EaseOut"/>
 
@@ -81,8 +81,24 @@
             </Setter>
         </Style>
         <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="{StaticResource Accent}"/>
+            <Setter Property="Background" Value="{DynamicResource Accent}"/>
             <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- service tab: plain text; the sliding thumb behind it shows the selection -->
+        <Style x:Key="Tab" TargetType="Button">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="ScrollBar">
@@ -133,7 +149,7 @@
                         <Grid Margin="0,1">
                             <Border x:Name="Hover" Background="{DynamicResource Overlay}" CornerRadius="8" Opacity="0"/>
                             <Border x:Name="Sel" Background="{DynamicResource Overlay}" CornerRadius="8" Opacity="0"/>
-                            <Rectangle x:Name="Bar" Width="3" Height="16" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource Accent}"
+                            <Rectangle x:Name="Bar" Width="3" Height="16" RadiusX="1.5" RadiusY="1.5" Fill="{DynamicResource Accent}"
                                        HorizontalAlignment="Left" Margin="4,0,0,0" RenderTransformOrigin="0.5,0.5">
                                 <Rectangle.RenderTransform>
                                     <ScaleTransform ScaleY="0"/>
@@ -227,7 +243,7 @@
                         <StackPanel Orientation="Horizontal" Background="Transparent">
                             <Grid Width="30" Height="17" VerticalAlignment="Center">
                                 <Border x:Name="Track" CornerRadius="8.5" Background="{DynamicResource Track}"/>
-                                <Border x:Name="On" CornerRadius="8.5" Background="{StaticResource Accent}" Opacity="0"/>
+                                <Border x:Name="On" CornerRadius="8.5" Background="{DynamicResource Accent}" Opacity="0"/>
                                 <Ellipse x:Name="Knob" Width="13" Height="13" Fill="White" HorizontalAlignment="Left" Margin="2,0,0,0">
                                     <Ellipse.RenderTransform>
                                         <TranslateTransform/>
@@ -280,7 +296,7 @@
 
         <StackPanel x:Name="Brand" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
             <Image Source="Assets/app.png" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"/>
-            <TextBlock Text="每日30首" FontSize="15" FontWeight="Bold" Margin="9,0,0,1" VerticalAlignment="Center"/>
+            <TextBlock x:Name="BrandText" Text="每日30首" FontSize="15" FontWeight="Bold" Margin="9,0,0,1" VerticalAlignment="Center"/>
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,8,0">
             <local:ThemeSwitch x:Name="ThemeSwitcher" VerticalAlignment="Center" Margin="0,0,12,0"/>
@@ -292,13 +308,6 @@
         <Canvas x:Name="LoadingBar" Grid.Row="0" Grid.ColumnSpan="2" Height="2" VerticalAlignment="Bottom"
                 ClipToBounds="True" Opacity="0" IsHitTestVisible="False">
             <Rectangle x:Name="LoadingDash" Width="220" Height="2" RadiusX="1" RadiusY="1">
-                <Rectangle.Fill>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#0031C27C" Offset="0"/>
-                        <GradientStop Color="#FF31C27C" Offset="0.5"/>
-                        <GradientStop Color="#0031C27C" Offset="1"/>
-                    </LinearGradientBrush>
-                </Rectangle.Fill>
                 <Rectangle.RenderTransform>
                     <TranslateTransform/>
                 </Rectangle.RenderTransform>
@@ -308,11 +317,27 @@
         <!-- left: search + dates -->
         <DockPanel x:Name="Sidebar" Grid.Row="1">
             <StackPanel DockPanel.Dock="Top" Margin="14,6,14,8">
+                <!-- service switch: the thumb slides over and takes on the service's color -->
+                <Border CornerRadius="17" Background="{DynamicResource Card2}" Padding="3" Margin="0,0,0,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="SourceThumb" CornerRadius="14" Background="{DynamicResource Accent}">
+                            <Border.RenderTransform>
+                                <TranslateTransform/>
+                            </Border.RenderTransform>
+                        </Border>
+                        <Button x:Name="QQTab" Style="{StaticResource Tab}" Content="QQ音乐" Click="SourceTab_Click"/>
+                        <Button x:Name="NeteaseTab" Grid.Column="1" Style="{StaticResource Tab}" Content="网易云音乐" Click="SourceTab_Click"/>
+                    </Grid>
+                </Border>
                 <TextBlock x:Name="CountText" Foreground="{DynamicResource Sub}" Margin="2,0,0,10"/>
                 <Border x:Name="SearchBorder" Background="{DynamicResource Card2}" CornerRadius="16" Padding="13,7" BorderThickness="1" BorderBrush="#00000000">
                     <Grid>
                         <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Fg}"
-                                 CaretBrush="#31C27C" TextChanged="SearchBox_TextChanged"
+                                 CaretBrush="{DynamicResource Accent}" TextChanged="SearchBox_TextChanged"
                                  GotKeyboardFocus="SearchBox_Focus" LostKeyboardFocus="SearchBox_Focus"/>
                         <TextBlock Text="搜索历史里的歌名 / 歌手" Foreground="{DynamicResource Placeholder}" IsHitTestVisible="False"
                                    x:Name="SearchHint"/>
@@ -321,7 +346,7 @@
             </StackPanel>
             <StackPanel DockPanel.Dock="Bottom" Margin="16,8,14,14">
                 <CheckBox x:Name="AutoStartBox" Content="开机自动启动" Margin="0,0,0,10" Click="SettingBox_Click"/>
-                <CheckBox x:Name="FollowQQBox" Content="打开QQ音乐时弹出" Click="SettingBox_Click"/>
+                <CheckBox x:Name="FollowQQBox" Content="打开音乐客户端时弹出" Click="SettingBox_Click"/>
             </StackPanel>
             <ListBox x:Name="DateList" Background="Transparent" Foreground="{DynamicResource Fg}" BorderThickness="0" Margin="8,0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.ScrollUnit="Pixel"
@@ -343,9 +368,9 @@
                 <TextBlock x:Name="TitleText" FontSize="26" FontWeight="Bold" Text="还没有记录"/>
                 <TextBlock x:Name="SubText" Foreground="{DynamicResource Sub}" Margin="0,6,0,16"/>
                 <WrapPanel x:Name="Actions" Margin="0,0,0,14">
-                    <Button x:Name="PlayBtn" Style="{StaticResource Primary}" Content="▶  放到工作区歌单并打开QQ音乐" Click="PlayBtn_Click"/>
+                    <Button x:Name="PlayBtn" Style="{StaticResource Primary}" Click="PlayBtn_Click"/>
                     <Button x:Name="SaveAsBtn" Content="另存为独立歌单" Click="SaveAsBtn_Click"/>
-                    <Button x:Name="CaptureBtn" Content="立即同步" ToolTip="捕获今天的每日30首，并从手机端的历史推荐补回最近几天" Click="CaptureBtn_Click"/>
+                    <Button x:Name="CaptureBtn" Content="立即同步" Click="CaptureBtn_Click"/>
                 </WrapPanel>
             </StackPanel>
 
@@ -407,7 +432,7 @@
                 <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.45" Color="Black"/>
             </Border.Effect>
             <StackPanel Orientation="Horizontal">
-                <Ellipse x:Name="ToastDot" Width="8" Height="8" Fill="{StaticResource Accent}" VerticalAlignment="Center"/>
+                <Ellipse x:Name="ToastDot" Width="8" Height="8" Fill="{DynamicResource Accent}" VerticalAlignment="Center"/>
                 <TextBlock x:Name="ToastText" Margin="10,0,0,0" FontSize="13" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>

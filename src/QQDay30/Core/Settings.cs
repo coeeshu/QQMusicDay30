@@ -7,9 +7,12 @@ namespace QQDay30.Core;
 public sealed class Settings
 {
     public bool AutoStartWithWindows { get; set; } = true;
-    /// <summary>Pop the window up when QQMusic.exe starts.</summary>
+    /// <summary>Pop the window up when a music client (QQMusic.exe / cloudmusic.exe) starts.</summary>
     public bool ShowWithQQMusic { get; set; } = true;
     public string WorkspaceName { get; set; } = "每日30·回放";
+    public string NeteaseWorkspaceName { get; set; } = "每日推荐·回放";
+    /// <summary>The service shown in the window last time.</summary>
+    public Platform Current { get; set; } = Platform.QQ;
     public ThemeMode Theme { get; set; } = ThemeMode.System;
     /// <summary>Leave empty to locate QQMusic.exe from the registry.</summary>
     public string QQMusicExe { get; set; } = "";

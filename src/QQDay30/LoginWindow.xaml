@@ -13,9 +13,8 @@
         <Grid DockPanel.Dock="Top" Height="44">
             <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
                 <Image Source="Assets/app.png" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"/>
-                <TextBlock Text="登录QQ音乐" FontSize="15" FontWeight="Bold" Margin="9,0,0,1" VerticalAlignment="Center"/>
-                <TextBlock x:Name="Hint" Foreground="#31C27C" FontSize="13" Margin="18,1,0,0" VerticalAlignment="Center"
-                           Text="点击网页右上角「登录」，用QQ或微信扫码，登录成功后窗口会自动关闭"/>
+                <TextBlock x:Name="HeadText" FontSize="15" FontWeight="Bold" Margin="9,0,0,1" VerticalAlignment="Center"/>
+                <TextBlock x:Name="Hint" FontSize="13" Margin="18,1,0,0" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,8,0">
                 <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" ToolTip="最小化"

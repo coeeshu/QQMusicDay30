@@ -70,6 +70,9 @@ public sealed class SongRow(int index, Song song, string? date) : INotifyPropert
 public partial class MainWindow : Window
 {
     private readonly AppHost _host;
+    private Color _accent;               // accent of the service shown (target of any running blend)
+    private EventHandler? _accentBlend;
+    private Account _account;
     private readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromSeconds(2.8) };
     private DayList? _day;           // the day being shown (kept while a search is active)
     private bool _searching;
@@ -79,9 +82,14 @@ public partial class MainWindow : Window
     public MainWindow(AppHost host)
     {
         _host = host;
+        _account = host.Get(host.Settings.Current);
         InitializeComponent();
         SourceInitialized += (_, _) => DarkTitleBar.Apply(this);
-        Loaded += (_, _) => PlayEntrance();
+        Loaded += (_, _) =>
+        {
+            MoveThumb(animate: false);
+            PlayEntrance();
+        };
         AutoStartBox.IsChecked = host.Settings.AutoStartWithWindows;
         FollowQQBox.IsChecked = host.Settings.ShowWithQQMusic;
         host.Captured += OnCaptured;
@@ -99,7 +107,97 @@ public partial class MainWindow : Window
         ThemeManager.Transition = RevealSwap;
         Closed += (_, _) => { if (ThemeManager.Transition == RevealSwap) ThemeManager.Transition = null; };
 
+        SwitchTo(_account.Platform, animate: false);
+    }
+
+    // ---- service switch ----
+
+    private void SourceTab_Click(object sender, RoutedEventArgs e) =>
+        SwitchTo(sender == QQTab ? Platform.QQ : Platform.Netease);
+
+    /// <summary>Shows another service: the thumb slides over, the accent color blends, the lists slide in.</summary>
+    public void SwitchTo(Platform platform, bool animate = true)
+    {
+        if (animate && platform == _account.Platform) return;
+        _account = _host.Get(platform);
+        if (_host.Settings.Current != platform)
+        {
+            _host.Settings.Current = platform;
+            _host.Settings.Save();
+        }
+
+        var color = Accents.Of(platform);
+        SetAccent(color, animate);
+        var clear = Color.FromArgb(0, color.R, color.G, color.B);
+        LoadingDash.Fill = new LinearGradientBrush(new GradientStopCollection { new(clear, 0), new(color, 0.5), new(clear, 1) },
+            new Point(0, 0), new Point(1, 0));
+        MoveThumb(animate);
+
+        BrandText.Text = _account.ListName;
+        PlayBtn.Content = "▶  放到工作区歌单并打开" + (platform == Platform.QQ ? "QQ音乐" : "网易云");
+        CaptureBtn.ToolTip = $"捕获今天的{_account.ListName}，并从{_account.HistoryName}补回最近几天";
+        _searching = false;
+        SearchBox.Text = "";
         Reload(keepSelection: false);
+        if (animate)
+        {
+            Anim.FadeSlideIn(BrandText, 0, 8, 0, 360);
+            Anim.FadeSlideIn(CountText, -12, 0, 0, 380);
+            Anim.FadeSlideIn(DateList, -20, 0, 40, 460);
+        }
+    }
+
+    /// <summary>
+    /// The accent brush lives in the window resources, which freeze it, so a blend swaps in a new brush every frame.
+    /// </summary>
+    private void SetAccent(Color to, bool animate)
+    {
+        if (_accentBlend != null) CompositionTarget.Rendering -= _accentBlend;
+        _accentBlend = null;
+        var from = Resources["Accent"] is SolidColorBrush b ? b.Color : to;
+        _accent = to;
+        if (!animate || from == to)
+        {
+            Resources["Accent"] = new SolidColorBrush(to);
+            return;
+        }
+        var start = DateTime.Now;
+        _accentBlend = (_, _) =>
+        {
+            var t = Math.Min((DateTime.Now - start).TotalMilliseconds / 450, 1);
+            Resources["Accent"] = new SolidColorBrush(Blend(from, to, Anim.EaseInOut.Ease(t)));
+            if (t >= 1 && _accentBlend != null)
+            {
+                CompositionTarget.Rendering -= _accentBlend;
+                _accentBlend = null;
+            }
+        };
+        CompositionTarget.Rendering += _accentBlend;
+    }
+
+    private static Color Blend(Color a, Color b, double t) => Color.FromRgb(
+        (byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
+
+    private void MoveThumb(bool animate)
+    {
+        var selected = _account.Platform == Platform.QQ ? QQTab : NeteaseTab;
+        foreach (var tab in new[] { QQTab, NeteaseTab })
+        {
+            if (tab == selected) tab.Foreground = Brushes.White;
+            else tab.SetResourceReference(ForegroundProperty, "Sub");
+        }
+        var move = (TranslateTransform)SourceThumb.RenderTransform;
+        var x = _account.Platform == Platform.QQ ? 0 : QQTab.ActualWidth;
+        if (animate)
+            move.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(x, TimeSpan.FromMilliseconds(420))
+            {
+                EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.3 },
+            });
+        else
+        {
+            move.BeginAnimation(TranslateTransform.XProperty, null);
+            move.X = x;
+        }
     }
 
     /// <summary>
@@ -167,7 +265,10 @@ public partial class MainWindow : Window
         hole.BeginAnimation(EllipseGeometry.RadiusYProperty, grow);
     }
 
-    private void OnCaptured(object? s, EventArgs e) => Dispatcher.Invoke(() => Reload(keepSelection: true));
+    private void OnCaptured(object? s, Platform p) => Dispatcher.Invoke(() =>
+    {
+        if (p == _account.Platform) Reload(keepSelection: true);
+    });
     private void OnStatus(object? s, string msg) => Dispatcher.Invoke(() => StatusText.Text = msg);
 
     // ---- animations ----
@@ -223,7 +324,7 @@ public partial class MainWindow : Window
     private void ShowToast(string msg, bool error = false)
     {
         ToastText.Text = msg;
-        ToastDot.Fill = new SolidColorBrush(error ? Color.FromRgb(0xE5, 0x48, 0x4D) : Color.FromRgb(0x31, 0xC2, 0x7C));
+        ToastDot.Fill = new SolidColorBrush(error ? Color.FromRgb(0xE5, 0x48, 0x4D) : _accent);
         Anim.FadeSlideIn(Toast, 0, 24, 0, 420);
         _toastTimer.Stop();
         _toastTimer.Start();
@@ -241,9 +342,13 @@ public partial class MainWindow : Window
     private void Reload(bool keepSelection)
     {
         var selected = (DateList.SelectedItem as DateItem)?.Date;
-        var dates = _host.Store.Dates();
+        var dates = _account.Store.Dates();
         DateList.ItemsSource = dates.Select(d => new DateItem(d)).ToList();
-        CountText.Text = dates.Count == 0 ? "还没有记录" : $"已记录 {dates.Count} 天";
+        CountText.Text = !_account.LoggedIn ? "未登录" : dates.Count == 0 ? "还没有记录" : $"已记录 {dates.Count} 天";
+        CaptureBtn.Content = _account.LoggedIn ? "立即同步" : "登录";
+        if (_account.LoggedIn) CaptureBtn.ClearValue(StyleProperty); // back to the implicit pill style
+        else CaptureBtn.Style = (Style)FindResource("Primary");
+        PlayBtn.Visibility = SaveAsBtn.Visibility = _account.LoggedIn ? Visibility.Visible : Visibility.Collapsed;
         var idx = keepSelection && selected != null ? dates.IndexOf(selected) : 0;
         DateList.SelectedIndex = dates.Count == 0 ? -1 : Math.Max(idx, 0);
         if (dates.Count == 0) ShowDay(null);
@@ -251,7 +356,7 @@ public partial class MainWindow : Window
 
     private void DateList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (DateList.SelectedItem is DateItem d) ShowDay(_host.Store.GetDay(d.Date));
+        if (DateList.SelectedItem is DateItem d) ShowDay(_account.Store.GetDay(d.Date));
     }
 
     private void ShowDay(DayList? day)
@@ -265,15 +370,17 @@ public partial class MainWindow : Window
         PlayBtn.IsEnabled = SaveAsBtn.IsEnabled = day != null && _busy == 0;
         if (day == null)
         {
-            TitleText.Text = "还没有记录";
-            SubText.Text = "点「立即同步」记录今天的每日30首";
+            TitleText.Text = _account.LoggedIn ? "还没有记录" : $"还没登录{_account.Name}";
+            SubText.Text = _account.LoggedIn
+                ? $"点「立即同步」记录今天的{_account.ListName}"
+                : $"点「登录」扫码，之后每天自动记录{_account.ListName}";
             SongList.ItemsSource = null;
         }
         else
         {
-            TitleText.Text = $"{new DateItem(day.Date).Label} 每日30首";
-            SubText.Text = day.Title.Contains("历史推荐")
-                ? $"{day.Songs.Count} 首 · 来自手机端历史推荐"
+            TitleText.Text = $"{new DateItem(day.Date).Label} {_account.ListName}";
+            SubText.Text = day.Title.Contains("历史")
+                ? $"{day.Songs.Count} 首 · 来自{_account.HistoryName}"
                 : $"{day.Songs.Count} 首 · 捕获于 {day.CapturedAt:yyyy-MM-dd HH:mm}";
             SetRows(day.Songs.Select((s, i) => new SongRow(i + 1, s, null)));
         }
@@ -292,16 +399,16 @@ public partial class MainWindow : Window
             return;
         }
         _searching = true;
-        var hits = _host.Store.Search(k);
+        var hits = _account.Store.Search(k);
         TitleText.Text = $"搜索「{k}」";
-        SubText.Text = $"在历史每日30首中找到 {hits.Count} 首";
+        SubText.Text = $"在历史{_account.ListName}中找到 {hits.Count} 首";
         SetRows(hits.Select((h, i) => new SongRow(i + 1, h.Song, h.Date)));
         PlayBtn.IsEnabled = SaveAsBtn.IsEnabled = false;
     }
 
     private void SearchBox_Focus(object sender, KeyboardFocusChangedEventArgs e)
     {
-        var to = SearchBox.IsKeyboardFocused ? Color.FromRgb(0x31, 0xC2, 0x7C) : Colors.Transparent;
+        var to = SearchBox.IsKeyboardFocused ? _accent : Colors.Transparent;
         var brush = new SolidColorBrush(((SolidColorBrush)SearchBorder.BorderBrush).Color);
         SearchBorder.BorderBrush = brush;
         brush.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(to, TimeSpan.FromMilliseconds(200)));
@@ -309,7 +416,7 @@ public partial class MainWindow : Window
 
     // ---- actions ----
 
-    private async Task Busy(Func<Task<string>> work)
+    private async Task Busy(Account a, Func<Task<string>> work)
     {
         SetBusy(true);
         try
@@ -318,7 +425,7 @@ public partial class MainWindow : Window
             catch (NotLoggedInException)
             {
                 // the key expired: renew it and run the action once more, else fall back to QR login
-                if (!await _host.TryRefreshLogin(force: true)) throw;
+                if (!await _host.TryRefreshLogin(a, force: true)) throw;
                 ShowToast(await work());
             }
         }
@@ -327,7 +434,7 @@ public partial class MainWindow : Window
             StatusText.Text = "出错：" + ex.Message;
             ShowToast(ex.Message, error: true);
             AppPaths.Log(ex.ToString());
-            if (ex is NotLoggedInException) _host.RequestLogin();
+            if (ex is NotLoggedInException) _host.RequestLogin(a);
         }
         finally { SetBusy(false); }
     }
@@ -335,31 +442,44 @@ public partial class MainWindow : Window
     private async void PlayBtn_Click(object sender, RoutedEventArgs e)
     {
         if (_day is not { } day) return;
-        await Busy(async () =>
+        var a = _account;
+        await Busy(a, async () =>
         {
-            await _host.FillWorkspace(day);
-            _host.OpenQQMusic();
-            return $"已放进「{_host.Settings.WorkspaceName}」，在QQ音乐里点开即可播放";
+            var ws = await _host.FillWorkspace(a, day);
+            _host.OpenClient(a, ws);
+            return a.Platform == Platform.QQ
+                ? $"已放进「{ws.Name}」，在QQ音乐里点开即可播放"
+                : $"已放进「{ws.Name}」，网易云已开始播放";
         });
     }
 
     private async void SaveAsBtn_Click(object sender, RoutedEventArgs e)
     {
         if (_day is not { } day) return;
+        var a = _account;
         var d = DateTime.ParseExact(day.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
-        var name = $"{d.Year}.{d.Month}.{d.Day}每日30";
-        await Busy(async () =>
+        var name = $"{d.Year}.{d.Month}.{d.Day}" + (a.Platform == Platform.QQ ? "每日30" : "每日推荐");
+        await Busy(a, async () =>
         {
-            await _host.SaveAsPlaylist(day, name);
+            await _host.SaveAsPlaylist(a, day, name);
             return $"已另存为歌单「{name}」";
         });
     }
 
-    private async void CaptureBtn_Click(object sender, RoutedEventArgs e) => await Busy(async () =>
+    private async void CaptureBtn_Click(object sender, RoutedEventArgs e)
     {
-        var added = await _host.CaptureNow();
-        return added > 0 ? $"已记录今天，并从历史推荐补回 {added} 天" : "已记录今天的每日30首";
-    });
+        var a = _account;
+        if (!a.LoggedIn)
+        {
+            _host.RequestLogin(a);
+            return;
+        }
+        await Busy(a, async () =>
+        {
+            var added = await _host.CaptureNow(a);
+            return added > 0 ? $"已记录今天，并从{a.HistoryName}补回 {added} 天" : $"已记录今天的{a.ListName}";
+        });
+    }
 
     private void MinBtn_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 

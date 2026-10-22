@@ -5,10 +5,11 @@ namespace QQDay30.Core;
 /// <summary>Local history of captured daily-30 lists.</summary>
 public sealed class Store
 {
-    private readonly string _cs = new SqliteConnectionStringBuilder { DataSource = AppPaths.Database }.ToString();
+    private readonly string _cs;
 
-    public Store()
+    public Store(string path)
     {
+        _cs = new SqliteConnectionStringBuilder { DataSource = path }.ToString();
         using var c = Open();
         Exec(c, """
             CREATE TABLE IF NOT EXISTS days(

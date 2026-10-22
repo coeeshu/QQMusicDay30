@@ -10,7 +10,7 @@ namespace QQDay30.Core;
 public sealed class NotLoggedInException(string msg) : Exception(msg);
 
 /// <summary>Thin client over the y.qq.com web endpoints, authenticated with the captured cookies.</summary>
-public sealed class QQMusicClient
+public sealed class QQMusicClient : IMusicClient
 {
     private readonly HttpClient _http;
     private readonly Dictionary<string, string> _cookies;
@@ -27,7 +27,7 @@ public sealed class QQMusicClient
         };
         _http.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36");
         _http.DefaultRequestHeaders.Add("Referer", "https://y.qq.com/");
-        _http.DefaultRequestHeaders.Add("Cookie", string.Join("; ", cookies.Select(kv => $"{kv.Key}={kv.Value}")));
+        _http.DefaultRequestHeaders.TryAddWithoutValidation("Cookie", string.Join("; ", cookies.Select(kv => $"{kv.Key}={kv.Value}")));
     }
 
     public static long GTk(string key)
@@ -123,6 +123,27 @@ public sealed class QQMusicClient
             ? DateTimeOffset.FromUnixTimeSeconds(t).LocalDateTime
             : DateTime.MinValue;
 
+    public async Task<DayList> GetToday()
+    {
+        var (title, pic, modified, songs) = await GetDaily30();
+        return new DayList(ResolveDate(pic, modified).ToString("yyyy-MM-dd"), 202, title, DateTime.Now, songs);
+    }
+
+    /// <summary>The cover is a calendar image like ".../calendar/1018_300.jpg"; fall back to the playlist mtime.</summary>
+    private static DateTime ResolveDate(string picUrl, DateTime modified)
+    {
+        var m = Regex.Match(picUrl, @"calendar/(\d{2})(\d{2})_");
+        if (m.Success)
+        {
+            var now = DateTime.Now;
+            var d = new DateTime(now.Year, int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value));
+            // a December cover fetched in early January belongs to last year
+            if (d > now.AddDays(2)) d = d.AddYears(-1);
+            return d;
+        }
+        return modified.Year > 2000 ? modified.Date : DateTime.Today;
+    }
+
     /// <summary>Today's daily 30, read from the account's system directory 202.</summary>
     public async Task<(string Title, string PicUrl, DateTime Modified, List<Song> Songs)> GetDaily30()
     {
@@ -176,7 +197,7 @@ public sealed class QQMusicClient
     /// The mobile app's 「历史推荐」: past daily-30 lists the server still keeps (about the last 7 days you opened).
     /// Without a date it returns the date list plus the newest day's songs; with one it returns that day.
     /// </summary>
-    public async Task<(List<DateTime> Dates, List<Song> Songs)> GetDaily30History(DateTime? day = null)
+    private async Task<(List<DateTime> Dates, List<Song> Songs)> GetDaily30History(DateTime? day = null)
     {
         object param = day is { } d
             ? new { dirid = 202, tid = 0, spec = new { bSet = true, year = d.Year, month = d.Month, day = d.Day } }
@@ -194,6 +215,10 @@ public sealed class QQMusicClient
         return (dates, songs);
     }
 
+    public async Task<List<DateTime>> GetHistoryDates() => (await GetDaily30History()).Dates;
+
+    public async Task<List<Song>> GetHistoryDay(DateTime day) => (await GetDaily30History(day)).Songs;
+
     public async Task<List<UserPlaylist>> GetMyPlaylists()
     {
         var data = await Musicu("music.musicasset.PlaylistBaseRead", "GetPlaylistByUin", new { uin = Uin, bFmtUtf8 = true });
@@ -204,7 +229,6 @@ public sealed class QQMusicClient
             .ToList();
     }
 
-    /// <summary>Finds one of the user's own playlists by name, creating it when missing.</summary>
     public async Task<UserPlaylist> EnsurePlaylist(string name)
     {
         // dirId >= 200 are system directories (201 = 我喜欢)
@@ -217,7 +241,6 @@ public sealed class QQMusicClient
         return new UserPlaylist(r["dirId"]!.GetValue<int>(), r["tid"]!.GetValue<long>(), name, 0);
     }
 
-    /// <summary>Clears the playlist and fills it with songs, keeping their order.</summary>
     public async Task ReplaceSongs(UserPlaylist pl, IReadOnlyList<Song> songs)
     {
         var (_, _, _, current) = await GetPlaylist(pl.Tid);

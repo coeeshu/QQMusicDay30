@@ -13,6 +13,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        AppDomain.CurrentDomain.UnhandledException += (_, ev) => AppPaths.Log("crash: " + ev.ExceptionObject);
 
         _single = new Mutex(true, "QQDay30.Single", out var first);
         _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, "QQDay30.Show");
@@ -26,13 +27,9 @@ public partial class App : Application
 
         ThemeManager.Init(Settings.Load().Theme);
 
-        if (!CookieStore.LooksLoggedIn(CookieStore.Load()) || e.Args.Contains("--login"))
-        {
-            if (new LoginWindow().ShowDialog() != true) { Shutdown(); return; }
-        }
-
         _host = new AppHost();
-        if (!e.Args.Contains("--tray")) _host.ShowWindow();
+        // with nothing logged in yet the window is the only way to log in, so show it even from autostart
+        if (!e.Args.Contains("--tray") || !_host.AnyLoggedIn) _host.ShowWindow();
 
         var signal = _showSignal;
         new Thread(() =>
