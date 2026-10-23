@@ -350,6 +350,9 @@ public partial class MainWindow : Window
         else CaptureBtn.Style = (Style)FindResource("Primary");
         PlayBtn.Visibility = SaveAsBtn.Visibility = _account.LoggedIn ? Visibility.Visible : Visibility.Collapsed;
         var idx = keepSelection && selected != null ? dates.IndexOf(selected) : 0;
+        // DateItem compares by date, so the same date in another service counts as "still selected"
+        // and no SelectionChanged fires; drop the selection first so the new day is shown
+        if (!keepSelection) DateList.SelectedIndex = -1;
         DateList.SelectedIndex = dates.Count == 0 ? -1 : Math.Max(idx, 0);
         if (dates.Count == 0) ShowDay(null);
     }
